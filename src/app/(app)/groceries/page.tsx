@@ -1,4 +1,4 @@
-﻿import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/layout/app-header";
 import { GroceriesList } from "./groceries-list";
 
@@ -9,17 +9,21 @@ export default async function GroceriesPage() {
     .from("household_members").select("household_id").eq("user_id", user!.id).single();
   const hid = member!.household_id;
 
-  const { data: items } = await supabase
-    .from("grocery_items")
-    .select("*, adder:profiles!grocery_items_added_by_fkey(id,display_name)")
-    .eq("household_id", hid)
-    .order("purchased", { ascending: true })
-    .order("created_at", { ascending: false });
+  const [itemsRes, templatesRes] = await Promise.all([
+    supabase.from("grocery_items").select("*").eq("household_id", hid)
+      .order("need_soon", { ascending: false }).order("created_at", { ascending: false }).limit(100),
+    supabase.from("grocery_templates").select("*").eq("household_id", hid).order("name"),
+  ]);
 
   return (
     <div>
       <AppHeader title="Groceries" />
-      <GroceriesList initialItems={items ?? []} householdId={hid} userId={user!.id} />
+      <GroceriesList
+        initialItems={itemsRes.data ?? []}
+        initialTemplates={templatesRes.data ?? []}
+        householdId={hid}
+        userId={user!.id}
+      />
     </div>
   );
 }

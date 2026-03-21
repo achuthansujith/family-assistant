@@ -42,6 +42,7 @@ export type HouseholdSettings = {
 export type ChoreStatus = "pending" | "done" | "snoozed";
 export type ChorePriority = "low" | "medium" | "high";
 export type RecurrenceRule = "daily" | "weekly" | "monthly" | `custom:${number}:days`;
+export type Visibility = "shared" | "private";
 
 export type Chore = {
   id: string;
@@ -55,6 +56,8 @@ export type Chore = {
   priority: ChorePriority;
   status: ChoreStatus;
   snoozed_until: string | null;
+  last_completed_at: string | null;
+  visibility: Visibility;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -81,6 +84,7 @@ export type Reminder = {
   assigned_to: string | null;
   status: ReminderStatus;
   snoozed_until: string | null;
+  visibility: Visibility;
   linked_entity_type: "chore" | "grocery_item" | "event" | null;
   linked_entity_id: string | null;
   created_at: string;
@@ -103,6 +107,7 @@ export type GroceryItem = {
   purchased_at: string | null;
   added_by: string;
   from_template_id: string | null;
+  need_soon: boolean;
   created_at: string;
   updated_at: string;
   adder?: Profile;
@@ -131,16 +136,74 @@ export type CalendarEvent = {
   all_day: boolean;
   category: EventCategory;
   attendee_ids: string[];
+  visibility: Visibility;
   created_by: string;
   created_at: string;
   updated_at: string;
+};
+
+// ============================================================
+// MEALS
+// ============================================================
+export type Meal = {
+  id: string;
+  household_id: string;
+  name: string;
+  description: string | null;
+  prep_minutes: number | null;
+  tags: string[];
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  ingredients?: MealIngredient[];
+};
+
+export type MealIngredient = {
+  id: string;
+  meal_id: string;
+  name: string;
+  quantity: string | null;
+  category: GroceryCategory;
+};
+
+export type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
+
+export type MealPlan = {
+  id: string;
+  household_id: string;
+  meal_id: string | null;
+  meal_name: string;
+  plan_date: string;
+  slot: MealSlot;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  meal?: Meal;
+};
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+export type NotificationType = "info" | "reminder" | "chore" | "grocery" | "meal" | "system";
+
+export type Notification = {
+  id: string;
+  household_id: string;
+  user_id: string;
+  title: string;
+  body: string | null;
+  type: NotificationType;
+  read: boolean;
+  linked_entity_type: string | null;
+  linked_entity_id: string | null;
+  created_at: string;
 };
 
 export type AiUsageLog = {
   id: string;
   household_id: string;
   user_id: string;
-  feature: "daily_summary" | "weekly_summary" | "quick_add" | "parse_item";
+  feature: "daily_summary" | "weekly_summary" | "quick_add" | "parse_item" | "meal_suggestion";
   prompt_tokens: number | null;
   completion_tokens: number | null;
   total_tokens: number | null;
