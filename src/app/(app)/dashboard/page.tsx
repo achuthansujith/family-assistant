@@ -55,7 +55,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <AppHeader title="HomeBase" />
+      <AppHeader title="Family Assistant AI" />
       <div className="px-4 py-4 space-y-4 pb-28">
         <QuickAddBar />
 

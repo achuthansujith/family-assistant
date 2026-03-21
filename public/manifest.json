@@ -1,7 +1,7 @@
-﻿{
-  "name": "HomeBase",
-  "short_name": "HomeBase",
-  "description": "Your household AI assistant",
+{
+  "name": "Family Assistant AI",
+  "short_name": "Family AI",
+  "description": "Your family, organized",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",
