@@ -1,26 +1,35 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toaster";
 import { Copy, Check } from "lucide-react";
 import { format } from "date-fns";
 
-export function SettingsForm({ household, settings, members, aiLogs, userId, isOwner }: {
+export function SettingsForm({ household, settings, members, aiLogs, userId, isOwner, notifPrefs }: {
   household: any;
   settings: any;
   members: any[];
   aiLogs: any[];
   userId: string;
   isOwner: boolean;
+  notifPrefs: any;
 }) {
   const [aiEnabled, setAiEnabled] = useState(settings?.ai_enabled ?? true);
   const [maxCalls, setMaxCalls] = useState(settings?.ai_max_calls_per_day ?? 5);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingNotif, setSavingNotif] = useState(false);
+
+  // Notification prefs state
+  const [morningEnabled, setMorningEnabled] = useState(notifPrefs?.morning_enabled ?? false);
+  const [morningTime, setMorningTime] = useState(notifPrefs?.morning_time ?? "07:30");
+  const [eveningEnabled, setEveningEnabled] = useState(notifPrefs?.evening_enabled ?? false);
+  const [eveningTime, setEveningTime] = useState(notifPrefs?.evening_time ?? "20:00");
+  const [aiSummaries, setAiSummaries] = useState(notifPrefs?.ai_summaries ?? false);
+
   const { toast } = useToast();
   const supabase = createClient();
 
@@ -34,6 +43,21 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
     setSaving(false);
     if (error) toast({ title: "Error saving", variant: "error" });
     else toast({ title: "Settings saved", variant: "success" });
+  }
+
+  async function saveNotifPrefs() {
+    setSavingNotif(true);
+    const { error } = await supabase.from("user_notification_prefs").upsert({
+      user_id: userId,
+      morning_enabled: morningEnabled,
+      morning_time: morningTime,
+      evening_enabled: eveningEnabled,
+      evening_time: eveningTime,
+      ai_summaries: aiSummaries,
+    });
+    setSavingNotif(false);
+    if (error) toast({ title: "Error saving notifications", variant: "error" });
+    else toast({ title: "Notification prefs saved", variant: "success" });
   }
 
   function copyInviteCode() {
@@ -71,7 +95,82 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
         </div>
       </Card>
 
-      {/* AI Settings */}
+      {/* Notification Preferences */}
+      <Card className="space-y-4">
+        <h2 className="font-semibold text-gray-800">Daily Summaries</h2>
+
+        {/* Morning */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Morning summary</p>
+              <p className="text-xs text-gray-400">Overdue, today tasks, events, meals</p>
+            </div>
+            <button
+              onClick={() => setMorningEnabled(!morningEnabled)}
+              className={`w-12 h-6 rounded-full transition-colors ${morningEnabled ? "bg-brand-500" : "bg-gray-200"}`}
+            >
+              <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${morningEnabled ? "translate-x-6" : "translate-x-0"}`} />
+            </button>
+          </div>
+          {morningEnabled && (
+            <div>
+              <label className="text-xs text-gray-500">Send time</label>
+              <input
+                type="time" value={morningTime}
+                onChange={e => setMorningTime(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Evening */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Evening summary</p>
+              <p className="text-xs text-gray-400">Completed, pending, tomorrow preview</p>
+            </div>
+            <button
+              onClick={() => setEveningEnabled(!eveningEnabled)}
+              className={`w-12 h-6 rounded-full transition-colors ${eveningEnabled ? "bg-brand-500" : "bg-gray-200"}`}
+            >
+              <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${eveningEnabled ? "translate-x-6" : "translate-x-0"}`} />
+            </button>
+          </div>
+          {eveningEnabled && (
+            <div>
+              <label className="text-xs text-gray-500">Send time</label>
+              <input
+                type="time" value={eveningTime}
+                onChange={e => setEveningTime(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* AI summaries toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">AI-written summaries</p>
+            <p className="text-xs text-gray-400">More natural language (uses AI quota)</p>
+          </div>
+          <button
+            onClick={() => setAiSummaries(!aiSummaries)}
+            className={`w-12 h-6 rounded-full transition-colors ${aiSummaries ? "bg-brand-500" : "bg-gray-200"}`}
+          >
+            <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${aiSummaries ? "translate-x-6" : "translate-x-0"}`} />
+          </button>
+        </div>
+
+        <Button onClick={saveNotifPrefs} loading={savingNotif} className="w-full" variant="secondary">
+          Save Notification Prefs
+        </Button>
+      </Card>
+
+      {/* AI Settings (owner only) */}
       {isOwner && (
         <Card className="space-y-4">
           <h2 className="font-semibold text-gray-800">AI Settings</h2>

@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toaster";
 import { format, addDays, parseISO } from "date-fns";
-import { Plus, Trash2, ShoppingCart, ChefHat } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ChefHat, Check, X } from "lucide-react";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"] as const;
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const CATEGORIES = ["produce","dairy","meat","bakery","frozen","snacks","beverages","household","personal_care","other"] as const;
 
 type Plan = { id: string; plan_date: string; slot: string; meal_name: string; meal_id: string | null };
 type Meal = { id: string; name: string; prep_minutes: number | null; tags: string[] };
+type Ingredient = { name: string; quantity: string; category: string; include: boolean };
 
 export function MealPlanner({ initialPlans, meals, householdId, userId, weekStart }: {
   initialPlans: Plan[];
@@ -28,6 +30,14 @@ export function MealPlanner({ initialPlans, meals, householdId, userId, weekStar
   const [loading, setLoading] = useState(false);
   const [showNewMeal, setShowNewMeal] = useState(false);
   const [newMealName, setNewMealName] = useState("");
+
+  // Grocery confirmation flow
+  const [groceryFlow, setGroceryFlow] = useState<{
+    plan: Plan;
+    ingredients: Ingredient[];
+    extra: string;
+  } | null>(null);
+
   const { toast } = useToast();
   const supabase = createClient();
 
@@ -69,38 +79,148 @@ export function MealPlanner({ initialPlans, meals, householdId, userId, weekStar
   async function createMeal() {
     if (!newMealName.trim()) return;
     setLoading(true);
-    const { data, error } = await supabase.from("meals").insert({
+    const { error } = await supabase.from("meals").insert({
       household_id: householdId,
       created_by: userId,
       name: newMealName.trim(),
-    }).select("id,name,prep_minutes,tags").single();
+    });
     setLoading(false);
     if (error) { toast({ title: "Error", description: error.message, variant: "error" }); return; }
     toast({ title: "Meal saved", variant: "success" });
     setNewMealName(""); setShowNewMeal(false);
   }
 
-  async function addToGroceries(plan: Plan) {
-    if (!plan.meal_id) { toast({ title: "No ingredients linked", variant: "error" }); return; }
-    const { data: ingredients } = await supabase
-      .from("meal_ingredients").select("*").eq("meal_id", plan.meal_id);
-    if (!ingredients?.length) { toast({ title: "No ingredients found", variant: "error" }); return; }
-    const rows = ingredients.map(i => ({
-      household_id: householdId, added_by: userId,
-      name: i.name, quantity: i.quantity, category: i.category, purchased: false,
+  // Start grocery confirmation flow
+  async function startGroceryFlow(plan: Plan) {
+    let ingredients: Ingredient[] = [];
+
+    if (plan.meal_id) {
+      const { data } = await supabase
+        .from("meal_ingredients").select("*").eq("meal_id", plan.meal_id);
+      if (data?.length) {
+        ingredients = data.map(i => ({
+          name: i.name, quantity: i.quantity ?? "", category: i.category ?? "other", include: true,
+        }));
+      }
+    }
+
+    // If no structured ingredients, show empty editable list
+    if (!ingredients.length) {
+      ingredients = [{ name: "", quantity: "", category: "other", include: true }];
+    }
+
+    setGroceryFlow({ plan, ingredients, extra: "" });
+  }
+
+  function toggleIngredient(idx: number) {
+    setGroceryFlow(prev => prev ? {
+      ...prev,
+      ingredients: prev.ingredients.map((ing, i) => i === idx ? { ...ing, include: !ing.include } : ing),
+    } : null);
+  }
+
+  function updateIngredient(idx: number, field: keyof Ingredient, val: string) {
+    setGroceryFlow(prev => prev ? {
+      ...prev,
+      ingredients: prev.ingredients.map((ing, i) => i === idx ? { ...ing, [field]: val } : ing),
+    } : null);
+  }
+
+  function addIngredientRow() {
+    setGroceryFlow(prev => prev ? {
+      ...prev,
+      ingredients: [...prev.ingredients, { name: "", quantity: "", category: "other", include: true }],
+    } : null);
+  }
+
+  async function confirmGroceries() {
+    if (!groceryFlow) return;
+    setLoading(true);
+
+    const toAdd = groceryFlow.ingredients.filter(i => i.include && i.name.trim());
+
+    // Add extra item if typed
+    if (groceryFlow.extra.trim()) {
+      toAdd.push({ name: groceryFlow.extra.trim(), quantity: "", category: "other", include: true });
+    }
+
+    if (!toAdd.length) {
+      setGroceryFlow(null);
+      setLoading(false);
+      return;
+    }
+
+    const rows = toAdd.map(i => ({
+      household_id: householdId,
+      added_by: userId,
+      name: i.name,
+      quantity: i.quantity || null,
+      category: i.category,
+      purchased: false,
     }));
-    await supabase.from("grocery_items").insert(rows);
-    toast({ title: `${ingredients.length} items added to grocery list`, variant: "success" });
+
+    const { error } = await supabase.from("grocery_items").insert(rows);
+    setLoading(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "error" }); return; }
+    toast({ title: `${rows.length} item${rows.length > 1 ? "s" : ""} added to grocery list`, variant: "success" });
+    setGroceryFlow(null);
   }
 
   return (
     <div className="px-4 py-4 space-y-4 pb-28">
+      {/* Grocery confirmation modal */}
+      {groceryFlow && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end">
+          <div className="bg-white w-full rounded-t-3xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Add groceries for {groceryFlow.plan.meal_name}?</h3>
+              <button onClick={() => setGroceryFlow(null)}><X size={20} className="text-gray-400" /></button>
+            </div>
+
+            <div className="space-y-2">
+              {groceryFlow.ingredients.map((ing, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <button onClick={() => toggleIngredient(idx)}
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                      ing.include ? "bg-brand-500 border-brand-500" : "border-gray-300"
+                    }`}>
+                    {ing.include && <Check size={12} className="text-white" />}
+                  </button>
+                  <input value={ing.name} onChange={e => updateIngredient(idx, "name", e.target.value)}
+                    placeholder="Item name"
+                    className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 min-w-0" />
+                  <input value={ing.quantity} onChange={e => updateIngredient(idx, "quantity", e.target.value)}
+                    placeholder="Qty"
+                    className="w-16 text-sm border border-gray-200 rounded-xl px-2 py-2" />
+                </div>
+              ))}
+              <button onClick={addIngredientRow}
+                className="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1 mt-1">
+                <Plus size={12} /> Add item
+              </button>
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-600 font-medium">Anything extra to add?</label>
+              <input value={groceryFlow.extra} onChange={e => setGroceryFlow(prev => prev ? { ...prev, extra: e.target.value } : null)}
+                placeholder="e.g. olive oil"
+                className="mt-1 w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5" />
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button onClick={confirmGroceries} loading={loading} className="flex-1">
+                <ShoppingCart size={15} /> Add to grocery list
+              </Button>
+              <Button variant="ghost" onClick={() => setGroceryFlow(null)}>Skip</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* New meal template */}
-      <div className="flex gap-2">
-        <Button size="sm" variant="secondary" className="flex-1" onClick={() => setShowNewMeal(s => !s)}>
-          <ChefHat size={14} /> Save meal template
-        </Button>
-      </div>
+      <Button size="sm" variant="secondary" className="w-full" onClick={() => setShowNewMeal(s => !s)}>
+        <ChefHat size={14} /> Save meal template
+      </Button>
 
       {showNewMeal && (
         <Card className="space-y-3">
@@ -130,7 +250,8 @@ export function MealPlanner({ initialPlans, meals, householdId, userId, weekStar
                     {slotPlans.map(p => (
                       <div key={p.id} className="flex items-center gap-2 py-0.5">
                         <span className="text-sm flex-1">{p.meal_name}</span>
-                        <button onClick={() => addToGroceries(p)} className="text-gray-300 hover:text-green-500">
+                        <button onClick={() => startGroceryFlow(p)}
+                          className="text-gray-300 hover:text-green-500" title="Add to groceries">
                           <ShoppingCart size={13} />
                         </button>
                         <button onClick={() => removePlan(p.id)} className="text-gray-300 hover:text-red-400">

@@ -53,6 +53,50 @@ export function buildQuickAddPrompt(text: string): { system: string; user: strin
   return { system: QUICK_ADD_SYSTEM, user: text };
 }
 
+// Morning summary prompt - static system for caching
+const MORNING_SUMMARY_SYSTEM = `Household assistant. Morning briefing in 2-4 sentences. Be practical and energising. No greetings.`;
+
+export function buildMorningSummaryPrompt(data: {
+  date: string;
+  overdueChores: { title: string }[];
+  dueTodayChores: { title: string }[];
+  todaysEvents: { title: string; starts_at?: string }[];
+  pendingReminders: { title: string }[];
+  needSoonGroceries: { name: string }[];
+  todayMeals: { slot: string; meal_name: string }[];
+}): { system: string; user: string } {
+  const lines: string[] = [`day:${data.date}`];
+  if (data.overdueChores.length) lines.push(`overdue:${data.overdueChores.slice(0, 5).map(c => c.title).join("|")}`);
+  if (data.dueTodayChores.length) lines.push(`today:${data.dueTodayChores.slice(0, 5).map(c => c.title).join("|")}`);
+  if (data.todaysEvents.length) lines.push(`events:${data.todaysEvents.slice(0, 4).map(e => e.title).join("|")}`);
+  if (data.pendingReminders.length) lines.push(`reminders:${data.pendingReminders.slice(0, 4).map(r => r.title).join("|")}`);
+  if (data.todayMeals.length) lines.push(`meals:${data.todayMeals.map(m => `${m.slot}:${m.meal_name}`).join("|")}`);
+  if (data.needSoonGroceries.length) lines.push(`need_soon:${data.needSoonGroceries.slice(0, 5).map(g => g.name).join("|")}`);
+  return { system: MORNING_SUMMARY_SYSTEM, user: lines.join("\n") };
+}
+
+// Evening summary prompt
+const EVENING_SUMMARY_SYSTEM = `Household assistant. Evening wrap-up in 2-4 sentences. Acknowledge progress, flag tomorrow. No greetings.`;
+
+export function buildEveningSummaryPrompt(data: {
+  tomorrow: string;
+  completedToday: { title: string }[];
+  stillPending: { title: string }[];
+  overdueCarryover: { title: string }[];
+  tomorrowChores: { title: string }[];
+  tomorrowEvents: { title: string }[];
+  tomorrowMeals: { slot: string; meal_name: string }[];
+}): { system: string; user: string } {
+  const lines: string[] = [`tomorrow:${data.tomorrow}`];
+  if (data.completedToday.length) lines.push(`done:${data.completedToday.slice(0, 6).map(c => c.title).join("|")}`);
+  if (data.stillPending.length) lines.push(`pending:${data.stillPending.slice(0, 4).map(c => c.title).join("|")}`);
+  if (data.overdueCarryover.length) lines.push(`overdue:${data.overdueCarryover.slice(0, 3).map(c => c.title).join("|")}`);
+  if (data.tomorrowChores.length) lines.push(`tomorrow_chores:${data.tomorrowChores.slice(0, 4).map(c => c.title).join("|")}`);
+  if (data.tomorrowEvents.length) lines.push(`tomorrow_events:${data.tomorrowEvents.slice(0, 4).map(e => e.title).join("|")}`);
+  if (data.tomorrowMeals.length) lines.push(`tomorrow_meals:${data.tomorrowMeals.map(m => `${m.slot}:${m.meal_name}`).join("|")}`);
+  return { system: EVENING_SUMMARY_SYSTEM, user: lines.join("\n") };
+}
+
 const WEEKLY_SUMMARY_SYSTEM = `Household assistant. Weekly overview in 3-5 sentences. Focus on conflicts and priorities.`;
 
 export function buildWeeklySummaryPrompt(data: {
