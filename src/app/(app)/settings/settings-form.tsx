@@ -1,0 +1,142 @@
+﻿"use client";
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toaster";
+import { Copy, Check } from "lucide-react";
+import { format } from "date-fns";
+
+export function SettingsForm({ household, settings, members, aiLogs, userId, isOwner }: {
+  household: any;
+  settings: any;
+  members: any[];
+  aiLogs: any[];
+  userId: string;
+  isOwner: boolean;
+}) {
+  const [aiEnabled, setAiEnabled] = useState(settings?.ai_enabled ?? true);
+  const [maxCalls, setMaxCalls] = useState(settings?.ai_max_calls_per_day ?? 5);
+  const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+  const supabase = createClient();
+
+  async function saveSettings() {
+    setSaving(true);
+    const { error } = await supabase.from("household_settings").upsert({
+      household_id: household.id,
+      ai_enabled: aiEnabled,
+      ai_max_calls_per_day: maxCalls,
+    });
+    setSaving(false);
+    if (error) toast({ title: "Error saving", variant: "error" });
+    else toast({ title: "Settings saved", variant: "success" });
+  }
+
+  function copyInviteCode() {
+    navigator.clipboard.writeText(household.invite_code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const todayTokens = aiLogs
+    .filter(l => l.created_at.startsWith(new Date().toISOString().split("T")[0]))
+    .reduce((sum, l) => sum + (l.total_tokens ?? 0), 0);
+
+  return (
+    <div className="px-4 py-4 space-y-5">
+      {/* Household */}
+      <Card className="space-y-3">
+        <h2 className="font-semibold text-gray-800">Household</h2>
+        <p className="text-sm text-gray-600">{household?.name}</p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 font-mono bg-gray-50 px-2 py-1 rounded-lg flex-1">
+            Invite code: {household?.invite_code}
+          </span>
+          <button onClick={copyInviteCode} className="p-2 rounded-lg bg-gray-100">
+            {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-gray-500" />}
+          </button>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-gray-500">Members</p>
+          {members.map((m: any) => (
+            <div key={m.user_id} className="flex items-center justify-between">
+              <span className="text-sm">{m.profile?.display_name ?? m.profile?.email}</span>
+              <Badge variant={m.role === "owner" ? "info" : "default"}>{m.role}</Badge>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* AI Settings */}
+      {isOwner && (
+        <Card className="space-y-4">
+          <h2 className="font-semibold text-gray-800">AI Settings</h2>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">AI Features</p>
+              <p className="text-xs text-gray-400">Summaries and smart parsing</p>
+            </div>
+            <button
+              onClick={() => setAiEnabled(!aiEnabled)}
+              className={`w-12 h-6 rounded-full transition-colors ${aiEnabled ? "bg-brand-500" : "bg-gray-200"}`}
+            >
+              <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${aiEnabled ? "translate-x-6" : "translate-x-0"}`} />
+            </button>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Max AI calls per day</label>
+            <input
+              type="number" min={0} max={20} value={maxCalls}
+              onChange={e => setMaxCalls(parseInt(e.target.value))}
+              className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm"
+            />
+            <p className="text-xs text-gray-400 mt-1">Keep at 3-5 to stay under 10 EUR/month</p>
+          </div>
+          <Button onClick={saveSettings} loading={saving} className="w-full" variant="secondary">
+            Save Settings
+          </Button>
+        </Card>
+      )}
+
+      {/* AI Usage Log */}
+      <Card className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-gray-800">AI Usage</h2>
+          <span className="text-xs text-gray-400">Today: ~{todayTokens} tokens</span>
+        </div>
+        {aiLogs.length === 0 ? (
+          <p className="text-sm text-gray-400">No AI calls yet</p>
+        ) : (
+          <div className="space-y-2">
+            {aiLogs.map(log => (
+              <div key={log.id} className="flex items-center justify-between text-xs">
+                <span className="text-gray-600">{log.feature}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400">{log.total_tokens ?? 0} tokens</span>
+                  <Badge variant={log.success ? "success" : "danger"}>{log.success ? "ok" : "err"}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Sign out */}
+      <Button
+        variant="ghost"
+        className="w-full text-red-500"
+        onClick={async () => {
+          const supabase = createClient();
+          await supabase.auth.signOut();
+          window.location.href = "/login";
+        }}
+      >
+        Sign Out
+      </Button>
+    </div>
+  );
+}
