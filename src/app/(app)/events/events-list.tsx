@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IcsImport } from "./ics-import";
 import { formatDateTime } from "@/lib/utils";
-import { Plus, MapPin, Calendar } from "lucide-react";
+import { Plus, MapPin, Calendar, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toaster";
 
 const CATEGORIES = ["appointment","school","family","travel","bill_payment","other"] as const;
@@ -52,6 +52,13 @@ export function EventsList({ initialEvents, householdId, userId, members }: {
     toast({ title: "Event added", variant: "success" });
   }
 
+  async function deleteEvent(id: string) {
+    const { error } = await supabase.from("events").delete().eq("id", id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "error" }); return; }
+    setEvents(prev => prev.filter(ev => ev.id !== id));
+    toast({ title: "Event deleted" });
+  }
+
   function handleImported(imported: any[]) {
     setEvents(prev =>
       [...prev, ...imported].sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
@@ -59,7 +66,7 @@ export function EventsList({ initialEvents, householdId, userId, members }: {
   }
 
   return (
-    <div className="px-4 py-4 space-y-3">
+    <div className="px-4 py-4 space-y-3 pb-28">
       <Button onClick={() => setShowAdd(!showAdd)} size="sm" className="w-full">
         <Plus size={16} /> Add Event
       </Button>
@@ -102,7 +109,16 @@ export function EventsList({ initialEvents, householdId, userId, members }: {
                   </div>
                 )}
               </div>
-              <Badge variant={catColors[ev.category] ?? "default"}>{ev.category.replace("_", " ")}</Badge>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge variant={catColors[ev.category] ?? "default"}>{ev.category.replace("_", " ")}</Badge>
+                <button
+                  onClick={() => deleteEvent(ev.id)}
+                  className="text-gray-300 hover:text-red-400 transition-colors p-1"
+                  aria-label="Delete event"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             </div>
           </Card>
         ))}
