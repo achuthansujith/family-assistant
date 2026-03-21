@@ -77,7 +77,7 @@ export function IcsImport({ householdId, userId, onImported }: {
       {!parsed ? (
         <>
           <input ref={inputRef} type="file" accept=".ics" className="hidden" onChange={handleFile} />
-          <Button variant="outline" size="sm" className="w-full" onClick={() => inputRef.current?.click()}>
+          <Button variant="secondary" size="sm" className="w-full" onClick={() => inputRef.current?.click()}>
             <Upload size={16} />
             Import from Google Calendar (.ics)
           </Button>
@@ -88,7 +88,7 @@ export function IcsImport({ householdId, userId, onImported }: {
           <p className="text-xs text-blue-600">Categories auto-detected. You can edit events after import.</p>
           <div className="flex gap-2">
             <Button onClick={doImport} loading={loading} size="sm" className="flex-1">Import all</Button>
-            <Button onClick={cancel} variant="outline" size="sm" className="flex-1">Cancel</Button>
+            <Button onClick={cancel} variant="secondary" size="sm" className="flex-1">Cancel</Button>
           </div>
         </div>
       )}
