@@ -15,15 +15,34 @@ export function usePushNotifications() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    // Not supported
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-      setState("unsupported"); return;
+      setState("unsupported");
+      return;
     }
-    if (Notification.permission === "denied") { setState("denied"); return; }
-    navigator.serviceWorker.ready.then(reg =>
-      reg.pushManager.getSubscription().then(sub =>
-        setState(sub ? "subscribed" : "prompt")
+
+    if (Notification.permission === "denied") {
+      setState("denied");
+      return;
+    }
+
+    // Timeout fallback — if SW isn't ready in 5s, show prompt anyway
+    const timeout = setTimeout(() => setState("prompt"), 5000);
+
+    navigator.serviceWorker.ready
+      .then(reg =>
+        reg.pushManager.getSubscription().then(sub => {
+          clearTimeout(timeout);
+          setState(sub ? "subscribed" : "prompt");
+        })
       )
-    ).catch(() => setState("unsupported"));
+      .catch(() => {
+        clearTimeout(timeout);
+        setState("unsupported");
+      });
+
+    return () => clearTimeout(timeout);
   }, []);
 
   async function subscribe(): Promise<boolean> {
@@ -40,7 +59,8 @@ export function usePushNotifications() {
         body: JSON.stringify(sub.toJSON()),
       });
       if (res.ok) { setState("subscribed"); return true; }
-      setState("prompt"); return false;
+      setState("prompt");
+      return false;
     } catch {
       setState(Notification.permission === "denied" ? "denied" : "prompt");
       return false;

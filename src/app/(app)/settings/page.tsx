@@ -8,7 +8,7 @@ export default async function SettingsPage() {
   const { data: member } = await supabase
     .from("household_members")
     .select("household_id, role, profile:profiles!household_members_user_id_fkey(display_name,email)")
-    .eq("user_id", user!.id).single();
+    .eq("user_id", user!.id).maybeSingle();
   const hid = member!.household_id;
 
   const [
@@ -30,8 +30,7 @@ export default async function SettingsPage() {
       .limit(10),
     supabase.from("user_notification_prefs")
       .select("*")
-      .eq("user_id", user!.id)
-      .single(),
+      .eq("user_id", user!.id).maybeSingle(),
   ]);
 
   return (

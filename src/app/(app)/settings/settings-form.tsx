@@ -54,7 +54,7 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
       evening_enabled: eveningEnabled,
       evening_time: eveningTime,
       ai_summaries: aiSummaries,
-    });
+    }, { onConflict: "user_id" });
     setSavingNotif(false);
     if (error) toast({ title: "Error saving notifications", variant: "error" });
     else toast({ title: "Notification prefs saved", variant: "success" });
