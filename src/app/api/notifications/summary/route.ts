@@ -21,21 +21,18 @@ export async function POST(req: NextRequest) {
   const tomorrow = addDays(today, 1);
   const tomorrowStr = format(tomorrow, "yyyy-MM-dd");
 
+  let summaryText = "";
+  let aiPowered = false;
+
   if (type === "morning") {
     const [overdue, todayChores, todayEvents, reminders, groceries, meals] = await Promise.all([
-      supabase.from("chores").select("title").eq("household_id", hid)
-        .eq("status", "pending").lt("due_date", todayStr).limit(5),
-      supabase.from("chores").select("title").eq("household_id", hid)
-        .eq("status", "pending").eq("due_date", todayStr).limit(5),
+      supabase.from("chores").select("title").eq("household_id", hid).eq("status", "pending").lt("due_date", todayStr).limit(5),
+      supabase.from("chores").select("title").eq("household_id", hid).eq("status", "pending").eq("due_date", todayStr).limit(5),
       supabase.from("events").select("title,starts_at").eq("household_id", hid)
-        .gte("starts_at", startOfDay(today).toISOString())
-        .lte("starts_at", endOfDay(today).toISOString()).limit(4),
-      supabase.from("reminders").select("title").eq("household_id", hid)
-        .eq("status", "pending").lte("due_at", endOfDay(today).toISOString()).limit(4),
-      supabase.from("grocery_items").select("name").eq("household_id", hid)
-        .eq("purchased", false).eq("need_soon", true).limit(5),
-      supabase.from("meal_plans").select("meal_name,slot").eq("household_id", hid)
-        .eq("plan_date", todayStr).order("slot"),
+        .gte("starts_at", startOfDay(today).toISOString()).lte("starts_at", endOfDay(today).toISOString()).limit(4),
+      supabase.from("reminders").select("title").eq("household_id", hid).eq("status", "pending").lte("due_at", endOfDay(today).toISOString()).limit(4),
+      supabase.from("grocery_items").select("name").eq("household_id", hid).eq("purchased", false).eq("need_soon", true).limit(5),
+      supabase.from("meal_plans").select("meal_name,slot").eq("household_id", hid).eq("plan_date", todayStr).order("slot"),
     ]);
 
     const data = {
@@ -48,81 +45,72 @@ export async function POST(req: NextRequest) {
       todayMeals: meals.data ?? [],
     };
 
-    const deterministic = buildDeterministicMorning(data);
+    summaryText = buildDeterministicMorning(data);
 
-    // Check user prefs for AI
-    const { data: prefs } = await supabase
-      .from("user_notification_prefs").select("ai_summaries").eq("user_id", user.id).single();
-
+    const { data: prefs } = await supabase.from("user_notification_prefs").select("ai_summaries").eq("user_id", user.id).single();
     if (prefs?.ai_summaries && isAiEnabled()) {
       try {
         const { system, user: userPrompt } = buildMorningSummaryPrompt(data);
-        const result = await callAi({
-          feature: "daily_summary", household_id: hid, user_id: user.id,
-          systemPrompt: system, userPrompt, maxTokens: 200,
-        });
-        await logDelivery(supabase, user.id, "morning", true, result.text);
-        return NextResponse.json({ summary: result.text, ai_powered: true, data });
-      } catch { /* fall through */ }
+        const result = await callAi({ feature: "daily_summary", household_id: hid, user_id: user.id, systemPrompt: system, userPrompt, maxTokens: 200 });
+        summaryText = result.text;
+        aiPowered = true;
+      } catch {}
     }
+  } else {
+    const [completedToday, stillPending, overdue, tomorrowChores, tomorrowEvents, tomorrowMeals] = await Promise.all([
+      supabase.from("chore_completions").select("chores(title)")
+        .gte("completed_at", startOfDay(today).toISOString()).lte("completed_at", endOfDay(today).toISOString()).limit(8),
+      supabase.from("chores").select("title").eq("household_id", hid).eq("status", "pending").eq("due_date", todayStr).limit(5),
+      supabase.from("chores").select("title").eq("household_id", hid).eq("status", "pending").lt("due_date", todayStr).limit(3),
+      supabase.from("chores").select("title").eq("household_id", hid).eq("status", "pending").eq("due_date", tomorrowStr).limit(5),
+      supabase.from("events").select("title,starts_at").eq("household_id", hid)
+        .gte("starts_at", startOfDay(tomorrow).toISOString()).lte("starts_at", endOfDay(tomorrow).toISOString()).limit(4),
+      supabase.from("meal_plans").select("meal_name,slot").eq("household_id", hid).eq("plan_date", tomorrowStr).order("slot"),
+    ]);
 
-    await logDelivery(supabase, user.id, "morning", false, deterministic);
-    return NextResponse.json({ summary: deterministic, ai_powered: false, data });
+    const data = {
+      completedToday: (completedToday.data ?? []).map((c: any) => ({ title: c.chores?.title ?? "" })).filter((c: any) => c.title),
+      stillPending: stillPending.data ?? [],
+      overdueCarryover: overdue.data ?? [],
+      tomorrowChores: tomorrowChores.data ?? [],
+      tomorrowEvents: tomorrowEvents.data ?? [],
+      tomorrowMeals: tomorrowMeals.data ?? [],
+      tomorrow: format(tomorrow, "EEEE, MMMM d"),
+    };
+
+    summaryText = buildDeterministicEvening(data);
+
+    const { data: prefs } = await supabase.from("user_notification_prefs").select("ai_summaries").eq("user_id", user.id).single();
+    if (prefs?.ai_summaries && isAiEnabled()) {
+      try {
+        const { system, user: userPrompt } = buildEveningSummaryPrompt(data);
+        const result = await callAi({ feature: "daily_summary", household_id: hid, user_id: user.id, systemPrompt: system, userPrompt, maxTokens: 200 });
+        summaryText = result.text;
+        aiPowered = true;
+      } catch {}
+    }
   }
 
-  // Evening
-  const [completedToday, stillPending, overdue, tomorrowChores, tomorrowEvents, tomorrowMeals] = await Promise.all([
-    supabase.from("chore_completions").select("chores(title)")
-      .gte("completed_at", startOfDay(today).toISOString())
-      .lte("completed_at", endOfDay(today).toISOString()).limit(8),
-    supabase.from("chores").select("title").eq("household_id", hid)
-      .eq("status", "pending").eq("due_date", todayStr).limit(5),
-    supabase.from("chores").select("title").eq("household_id", hid)
-      .eq("status", "pending").lt("due_date", todayStr).limit(3),
-    supabase.from("chores").select("title").eq("household_id", hid)
-      .eq("status", "pending").eq("due_date", tomorrowStr).limit(5),
-    supabase.from("events").select("title,starts_at").eq("household_id", hid)
-      .gte("starts_at", startOfDay(tomorrow).toISOString())
-      .lte("starts_at", endOfDay(tomorrow).toISOString()).limit(4),
-    supabase.from("meal_plans").select("meal_name,slot").eq("household_id", hid)
-      .eq("plan_date", tomorrowStr).order("slot"),
-  ]);
-
-  const data = {
-    completedToday: (completedToday.data ?? []).map((c: any) => ({ title: c.chores?.title ?? "" })).filter(c => c.title),
-    stillPending: stillPending.data ?? [],
-    overdueCarryover: overdue.data ?? [],
-    tomorrowChores: tomorrowChores.data ?? [],
-    tomorrowEvents: tomorrowEvents.data ?? [],
-    tomorrowMeals: tomorrowMeals.data ?? [],
-    tomorrow: format(tomorrow, "EEEE, MMMM d"),
-  };
-
-  const deterministic = buildDeterministicEvening(data);
-
-  const { data: prefs } = await supabase
-    .from("user_notification_prefs").select("ai_summaries").eq("user_id", user.id).single();
-
-  if (prefs?.ai_summaries && isAiEnabled()) {
-    try {
-      const { system, user: userPrompt } = buildEveningSummaryPrompt(data);
-      const result = await callAi({
-        feature: "daily_summary", household_id: hid, user_id: user.id,
-        systemPrompt: system, userPrompt, maxTokens: 200,
-      });
-      await logDelivery(supabase, user.id, "evening", true, result.text);
-      return NextResponse.json({ summary: result.text, ai_powered: true, data });
-    } catch { /* fall through */ }
-  }
-
-  await logDelivery(supabase, user.id, "evening", false, deterministic);
-  return NextResponse.json({ summary: deterministic, ai_powered: false, data });
-}
-
-async function logDelivery(supabase: any, userId: string, type: string, aiPowered: boolean, text: string) {
-  supabase.from("notification_delivery_log").insert({
-    user_id: userId, type, ai_powered: aiPowered, summary_text: text,
+  // Log delivery
+  await supabase.from("notification_delivery_log").insert({
+    user_id: user.id, type, ai_powered: aiPowered, summary_text: summaryText,
   });
+
+  // Send push notification to this user's devices
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  try {
+    await fetch(`${appUrl}/api/push/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: req.headers.get("cookie") ?? "" },
+      body: JSON.stringify({
+        title: type === "morning" ? "Good morning " : "Evening wrap-up ",
+        body: summaryText.slice(0, 120),
+        url: "/dashboard",
+      }),
+    });
+  } catch {}
+
+  return NextResponse.json({ summary: summaryText, ai_powered: aiPowered });
 }
 
 function buildDeterministicMorning(data: any): string {
@@ -138,16 +126,16 @@ function buildDeterministicMorning(data: any): string {
 }
 
 function buildDeterministicEvening(data: any): string {
-  const parts: string[] = [`Good evening!`];
-  if (data.completedToday.length) parts.push(`Done today: ${data.completedToday.map((c: any) => c.title).join(", ")}.`);
+  const parts: string[] = ["Good evening!"];
+  if (data.completedToday.length) parts.push(`Done: ${data.completedToday.map((c: any) => c.title).join(", ")}.`);
   if (data.stillPending.length) parts.push(`Still pending: ${data.stillPending.map((c: any) => c.title).join(", ")}.`);
-  if (data.overdueCarryover.length) parts.push(`${data.overdueCarryover.length} overdue item(s) carrying over.`);
+  if (data.overdueCarryover.length) parts.push(`${data.overdueCarryover.length} overdue carrying over.`);
   if (data.tomorrowChores.length || data.tomorrowEvents.length || data.tomorrowMeals.length) {
     parts.push(`Tomorrow (${data.tomorrow}):`);
     if (data.tomorrowChores.length) parts.push(data.tomorrowChores.map((c: any) => c.title).join(", ") + ".");
     if (data.tomorrowEvents.length) parts.push(data.tomorrowEvents.map((e: any) => e.title).join(", ") + ".");
     if (data.tomorrowMeals.length) parts.push(data.tomorrowMeals.map((m: any) => `${m.slot}: ${m.meal_name}`).join(", ") + ".");
   }
-  if (parts.length === 1) parts.push("All clear for today. Rest well!");
+  if (parts.length === 1) parts.push("All clear. Rest well!");
   return parts.join(" ");
 }

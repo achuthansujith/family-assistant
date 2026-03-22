@@ -5,8 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toaster";
-import { Copy, Check } from "lucide-react";
-import { format } from "date-fns";
+import { Copy, Check, Bell, BellOff } from "lucide-react";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 export function SettingsForm({ household, settings, members, aiLogs, userId, isOwner, notifPrefs }: {
   household: any;
@@ -23,7 +23,6 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
   const [saving, setSaving] = useState(false);
   const [savingNotif, setSavingNotif] = useState(false);
 
-  // Notification prefs state
   const [morningEnabled, setMorningEnabled] = useState(notifPrefs?.morning_enabled ?? false);
   const [morningTime, setMorningTime] = useState(notifPrefs?.morning_time ?? "07:30");
   const [eveningEnabled, setEveningEnabled] = useState(notifPrefs?.evening_enabled ?? false);
@@ -32,6 +31,7 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
 
   const { toast } = useToast();
   const supabase = createClient();
+  const { state: pushState, subscribe, unsubscribe } = usePushNotifications();
 
   async function saveSettings() {
     setSaving(true);
@@ -60,6 +60,18 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
     else toast({ title: "Notification prefs saved", variant: "success" });
   }
 
+  async function handlePushToggle() {
+    if (pushState === "subscribed") {
+      await unsubscribe();
+      toast({ title: "Push notifications disabled", variant: "default" });
+    } else {
+      const ok = await subscribe();
+      if (ok) toast({ title: "Push notifications enabled", variant: "success" });
+      else if (pushState === "denied") toast({ title: "Permission denied - enable in browser settings", variant: "error" });
+      else toast({ title: "Could not enable notifications", variant: "error" });
+    }
+  }
+
   function copyInviteCode() {
     navigator.clipboard.writeText(household.invite_code);
     setCopied(true);
@@ -72,7 +84,6 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
 
   return (
     <div className="px-4 py-4 space-y-5">
-      {/* Household */}
       <Card className="space-y-3">
         <h2 className="font-semibold text-gray-800">Household</h2>
         <p className="text-sm text-gray-600">{household?.name}</p>
@@ -95,11 +106,52 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
         </div>
       </Card>
 
-      {/* Notification Preferences */}
+      <Card className="space-y-3">
+        <h2 className="font-semibold text-gray-800">Push Notifications</h2>
+        {pushState === "unsupported" ? (
+          <p className="text-sm text-gray-400">
+            Not supported on this device. On iPhone, add the app to your Home Screen first, then come back here.
+          </p>
+        ) : pushState === "denied" ? (
+          <p className="text-sm text-red-500">Permission denied. Go to your browser/phone settings and allow notifications for this site.</p>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <div className={`mt-0.5 p-2 rounded-xl ${pushState === "subscribed" ? "bg-green-100" : "bg-gray-100"}`}>
+                {pushState === "subscribed"
+                  ? <Bell size={18} className="text-green-600" />
+                  : <BellOff size={18} className="text-gray-400" />}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {pushState === "subscribed" ? "Notifications are on" : "Notifications are off"}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {pushState === "subscribed"
+                    ? "You will receive morning and evening summaries on this device."
+                    : "Tap below to receive daily summaries on this device."}
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={handlePushToggle}
+              loading={pushState === "loading"}
+              variant={pushState === "subscribed" ? "ghost" : "primary"}
+              className={`w-full ${pushState === "subscribed" ? "text-red-500" : ""}`}
+            >
+              {pushState === "subscribed" ? "Disable push notifications" : "Enable push notifications"}
+            </Button>
+            {pushState === "prompt" && (
+              <p className="text-xs text-gray-400 text-center">
+                iPhone: make sure the app is added to your Home Screen first.
+              </p>
+            )}
+          </div>
+        )}
+      </Card>
+
       <Card className="space-y-4">
         <h2 className="font-semibold text-gray-800">Daily Summaries</h2>
-
-        {/* Morning */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div>
@@ -124,8 +176,6 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
             </div>
           )}
         </div>
-
-        {/* Evening */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div>
@@ -150,8 +200,6 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
             </div>
           )}
         </div>
-
-        {/* AI summaries toggle */}
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium">AI-written summaries</p>
@@ -164,13 +212,11 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
             <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${aiSummaries ? "translate-x-6" : "translate-x-0"}`} />
           </button>
         </div>
-
         <Button onClick={saveNotifPrefs} loading={savingNotif} className="w-full" variant="secondary">
-          Save Notification Prefs
+          Save notification prefs
         </Button>
       </Card>
 
-      {/* AI Settings (owner only) */}
       {isOwner && (
         <Card className="space-y-4">
           <h2 className="font-semibold text-gray-800">AI Settings</h2>
@@ -196,12 +242,11 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
             <p className="text-xs text-gray-400 mt-1">Keep at 3-5 to stay under 10 EUR/month</p>
           </div>
           <Button onClick={saveSettings} loading={saving} className="w-full" variant="secondary">
-            Save Settings
+            Save settings
           </Button>
         </Card>
       )}
 
-      {/* AI Usage Log */}
       <Card className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-gray-800">AI Usage</h2>
@@ -224,7 +269,6 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
         )}
       </Card>
 
-      {/* Sign out */}
       <Button
         variant="ghost"
         className="w-full text-red-500"
@@ -234,7 +278,7 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
           window.location.href = "/login";
         }}
       >
-        Sign Out
+        Sign out
       </Button>
     </div>
   );
