@@ -10,14 +10,39 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
-// Wraps a promise with a timeout — rejects after ms milliseconds
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`Timeout: ${label} took longer than ${ms}ms`)), ms)
-    ),
-  ]);
+// Get an active SW registration without relying on serviceWorker.ready
+// (which hangs if the SW is stuck in installing/waiting state)
+async function getActiveRegistration(): Promise<ServiceWorkerRegistration> {
+  // First try existing registrations
+  const regs = await navigator.serviceWorker.getRegistrations();
+  for (const reg of regs) {
+    if (reg.active) return reg;
+  }
+
+  // If none active yet, register /sw.js explicitly and wait up to 8s for activation
+  const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+
+  return new Promise((resolve, reject) => {
+    // Already active
+    if (reg.active) { resolve(reg); return; }
+
+    const worker = reg.installing ?? reg.waiting;
+    if (!worker) { reject(new Error("No service worker found")); return; }
+
+    const timeout = setTimeout(() => reject(new Error("Service worker took too long to activate")), 8000);
+
+    worker.addEventListener("statechange", function handler() {
+      if (worker.state === "activated") {
+        clearTimeout(timeout);
+        worker.removeEventListener("statechange", handler);
+        resolve(reg);
+      } else if (worker.state === "redundant") {
+        clearTimeout(timeout);
+        worker.removeEventListener("statechange", handler);
+        reject(new Error("Service worker became redundant"));
+      }
+    });
+  });
 }
 
 export function usePushNotifications() {
@@ -37,60 +62,44 @@ export function usePushNotifications() {
       return;
     }
 
-    const timeout = setTimeout(() => setState("prompt"), 4000);
-
-    navigator.serviceWorker.ready
-      .then(reg => reg.pushManager.getSubscription())
-      .then(sub => {
-        clearTimeout(timeout);
-        setState(sub ? "subscribed" : "prompt");
+    // Check for existing push subscription without waiting for SW.ready
+    navigator.serviceWorker.getRegistrations()
+      .then(regs => {
+        const active = regs.find(r => r.active);
+        if (!active) { setState("prompt"); return; }
+        return active.pushManager.getSubscription().then(sub => {
+          setState(sub ? "subscribed" : "prompt");
+        });
       })
-      .catch(() => {
-        clearTimeout(timeout);
-        setState("prompt");
-      });
-
-    return () => clearTimeout(timeout);
+      .catch(() => setState("prompt"));
   }, []);
 
   async function subscribe(): Promise<boolean> {
     setError(null);
     setState("loading");
     try {
-      // Step 1: get SW registration (4s timeout)
-      const reg = await withTimeout(
-        navigator.serviceWorker.ready,
-        4000,
-        "serviceWorker.ready"
-      );
-
-      // Step 2: subscribe to push (10s timeout — iOS permission prompt can be slow)
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) {
-        setError("VAPID key not configured");
+        setError("Push notifications not configured (missing VAPID key)");
         setState("prompt");
         return false;
       }
 
-      const sub = await withTimeout(
-        reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
-        }),
-        10000,
-        "pushManager.subscribe"
-      );
+      // Get active registration (registers SW if needed, waits for activation)
+      const reg = await getActiveRegistration();
 
-      // Step 3: save to server (5s timeout)
-      const res = await withTimeout(
-        fetch("/api/push/subscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(sub.toJSON()),
-        }),
-        5000,
-        "save subscription"
-      );
+      // Subscribe to push
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
+      });
+
+      // Save to server
+      const res = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sub.toJSON()),
+      });
 
       if (res.ok) {
         setState("subscribed");
@@ -103,10 +112,9 @@ export function usePushNotifications() {
       return false;
     } catch (err: any) {
       const msg: string = err?.message ?? String(err);
-      // User explicitly denied
-      if (msg.includes("denied") || Notification.permission === "denied") {
+      if (Notification.permission === "denied" || msg.toLowerCase().includes("denied")) {
         setState("denied");
-        setError("Permission denied — allow notifications in your phone settings");
+        setError("Permission denied — allow notifications in Settings > Safari > [this site]");
       } else {
         setState("prompt");
         setError(msg);
@@ -118,15 +126,18 @@ export function usePushNotifications() {
   async function unsubscribe(): Promise<void> {
     setError(null);
     try {
-      const reg = await withTimeout(navigator.serviceWorker.ready, 4000, "serviceWorker.ready");
-      const sub = await reg.pushManager.getSubscription();
-      if (sub) {
-        await fetch("/api/push/subscribe", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: sub.endpoint }),
-        });
-        await sub.unsubscribe();
+      const regs = await navigator.serviceWorker.getRegistrations();
+      const active = regs.find(r => r.active);
+      if (active) {
+        const sub = await active.pushManager.getSubscription();
+        if (sub) {
+          await fetch("/api/push/subscribe", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ endpoint: sub.endpoint }),
+          });
+          await sub.unsubscribe();
+        }
       }
     } catch {}
     setState("prompt");
