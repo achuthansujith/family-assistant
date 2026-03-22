@@ -20,19 +20,24 @@ export default function OnboardingPage() {
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error ?? "Failed to create household"); setLoading(false); return; }
-    // Hard navigation so server layout re-runs with fresh session
     window.location.href = "/dashboard";
   }
 
   async function joinHousehold() {
+    const code = inviteCode.trim();
+    if (!code) { setError("Please enter an invite code"); return; }
     setLoading(true); setError("");
     const res = await fetch("/api/household/invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invite_code: inviteCode.trim() }),
+      body: JSON.stringify({ invite_code: code }),
     });
     const data = await res.json();
-    if (!res.ok) { setError(data.error ?? "Invalid code"); setLoading(false); return; }
+    if (!res.ok) {
+      setError(data.error ?? "Invalid code. Ask your partner to share it from Settings.");
+      setLoading(false);
+      return;
+    }
     window.location.href = "/dashboard";
   }
 
@@ -51,7 +56,7 @@ export default function OnboardingPage() {
             </div>
             <div className="text-left">
               <p className="font-semibold text-gray-900">Create household</p>
-              <p className="text-sm text-gray-500">Start fresh, invite your partner</p>
+              <p className="text-sm text-gray-500">Start fresh, invite your partner later</p>
             </div>
           </button>
           <button onClick={() => setMode("join")}
@@ -61,7 +66,7 @@ export default function OnboardingPage() {
             </div>
             <div className="text-left">
               <p className="font-semibold text-gray-900">Join household</p>
-              <p className="text-sm text-gray-500">Enter your partner&apos;s invite code</p>
+              <p className="text-sm text-gray-500">Enter the invite code from Settings</p>
             </div>
           </button>
         </div>
@@ -75,20 +80,39 @@ export default function OnboardingPage() {
         <h1 className="text-2xl font-bold text-gray-900 text-center">
           {mode === "create" ? "Name your household" : "Enter invite code"}
         </h1>
+        {mode === "join" && (
+          <p className="text-sm text-gray-500 text-center">
+            Find the code in your partner&apos;s app under Settings  Household
+          </p>
+        )}
         <div className="bg-white rounded-3xl border border-gray-100 p-6 space-y-4">
           {mode === "create" ? (
             <Input label="Household name" value={householdName} onChange={e => setHouseholdName(e.target.value)} />
           ) : (
-            <Input label="Invite code" value={inviteCode} onChange={e => setInviteCode(e.target.value)} placeholder="e.g. abc12345" />
+            <Input
+              label="Invite code"
+              value={inviteCode}
+              onChange={e => setInviteCode(e.target.value)}
+              placeholder="e.g. abc12345"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+            />
           )}
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && (
+            <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
           <Button
             onClick={mode === "create" ? createHousehold : joinHousehold}
             loading={loading} className="w-full" size="lg"
           >
-            {mode === "create" ? "Create Household" : "Join Household"}
+            {mode === "create" ? "Create household" : "Join household"}
           </Button>
-          <button onClick={() => setMode("choose")} className="w-full text-sm text-gray-400">Back</button>
+          <button onClick={() => { setMode("choose"); setError(""); }} className="w-full text-sm text-gray-400">
+            Back
+          </button>
         </div>
       </div>
     </div>

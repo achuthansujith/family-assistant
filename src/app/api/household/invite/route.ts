@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { JoinHouseholdSchema } from "@/lib/validators/schemas";
 
 // POST /api/household/invite - join a household via invite code
@@ -11,24 +11,60 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = JoinHouseholdSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "Invalid invite code format" }, { status: 400 });
   }
 
   const { invite_code } = parsed.data;
 
-  // Find household by invite code
-  const { data: household } = await supabase
+  // Use service client to look up household — the joining user is not yet a member
+  // so RLS would block a normal select on households
+  const service = createServiceClient();
+
+  const { data: household, error: lookupError } = await service
     .from("households")
     .select("id, name")
-    .eq("invite_code", invite_code)
+    .eq("invite_code", invite_code.trim().toLowerCase())
     .single();
 
-  if (!household) {
-    return NextResponse.json({ error: "Invalid invite code" }, { status: 404 });
+  if (lookupError || !household) {
+    // Try without lowercasing in case code is mixed-case
+    const { data: household2 } = await service
+      .from("households")
+      .select("id, name")
+      .eq("invite_code", invite_code.trim())
+      .single();
+
+    if (!household2) {
+      return NextResponse.json({ error: "Invalid invite code. Check the code and try again." }, { status: 404 });
+    }
+
+    // Already a member?
+    const { data: existing } = await service
+      .from("household_members")
+      .select("id")
+      .eq("household_id", household2.id)
+      .eq("user_id", user.id)
+      .single();
+
+    if (existing) {
+      return NextResponse.json({ household: household2, already_member: true });
+    }
+
+    const { error: joinError } = await service.from("household_members").insert({
+      household_id: household2.id,
+      user_id: user.id,
+      role: "member",
+    });
+
+    if (joinError) {
+      return NextResponse.json({ error: joinError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ household: household2, joined: true });
   }
 
-  // Check if already a member
-  const { data: existing } = await supabase
+  // Already a member?
+  const { data: existing } = await service
     .from("household_members")
     .select("id")
     .eq("household_id", household.id)
@@ -39,15 +75,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ household, already_member: true });
   }
 
-  // Join household
-  const { error } = await supabase.from("household_members").insert({
+  // Join — use service client so RLS insert policy doesn't block
+  const { error: joinError } = await service.from("household_members").insert({
     household_id: household.id,
     user_id: user.id,
     role: "member",
   });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (joinError) {
+    return NextResponse.json({ error: joinError.message }, { status: 500 });
   }
 
   return NextResponse.json({ household, joined: true });
