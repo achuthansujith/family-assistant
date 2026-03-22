@@ -31,7 +31,7 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
 
   const { toast } = useToast();
   const supabase = createClient();
-  const { state: pushState, subscribe, unsubscribe } = usePushNotifications();
+  const { state: pushState, error: pushError, subscribe, unsubscribe } = usePushNotifications();
 
   async function saveSettings() {
     setSaving(true);
@@ -67,8 +67,7 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
     } else {
       const ok = await subscribe();
       if (ok) toast({ title: "Push notifications enabled", variant: "success" });
-      else if (pushState === "denied") toast({ title: "Permission denied - enable in browser settings", variant: "error" });
-      else toast({ title: "Could not enable notifications", variant: "error" });
+      else toast({ title: pushError ?? "Could not enable notifications", variant: "error" });
     }
   }
 
@@ -141,7 +140,10 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
             >
               {pushState === "subscribed" ? "Disable push notifications" : "Enable push notifications"}
             </Button>
-            {pushState === "prompt" && (
+            {pushError && (
+              <p className="text-xs text-red-500 text-center break-words">{pushError}</p>
+            )}
+            {!pushError && pushState === "prompt" && (
               <p className="text-xs text-gray-400 text-center">
                 iPhone: make sure the app is added to your Home Screen first.
               </p>
