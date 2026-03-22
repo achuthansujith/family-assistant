@@ -1,1 +1,48 @@
-if(!self.define){let s,e={};const n=(n,i)=>(n=new URL(n+".js",i).href,e[n]||new Promise(e=>{if("document"in self){const s=document.createElement("script");s.src=n,s.onload=e,document.head.appendChild(s)}else s=n,importScripts(n),e()}).then(()=>{let s=e[n];if(!s)throw new Error(`Module ${n} didn’t register its module`);return s}));self.define=(i,a)=>{const t=s||("document"in self?document.currentScript.src:"")||location.href;if(e[t])return;let c={};const r=s=>n(s,t),u={module:{uri:t},exports:c,require:r};e[t]=Promise.all(i.map(s=>u[s]||r(s))).then(s=>(a(...s),c))}}define(["./workbox-86a8e45e"],function(s){"use strict";importScripts("worker-8bYnO4is9ky16ngqwDC0M.js"),self.skipWaiting(),s.clientsClaim(),s.precacheAndRoute([{url:"/_next/app-build-manifest.json",revision:"3472fd053a84272beeca02e33e8d1609"},{url:"/_next/static/8bYnO4is9ky16ngqwDC0M/_buildManifest.js",revision:"c155cce658e53418dec34664328b51ac"},{url:"/_next/static/8bYnO4is9ky16ngqwDC0M/_ssgManifest.js",revision:"b6652df95db52feb4daf4eca35380933"},{url:"/_next/static/chunks/117-9ad3ca87c4b244d3.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/33-91d72dc53c11a2c3.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/334-8d5f7f942fbe5696.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/607-7dd3ebe705825d6f.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/648-782db8b6604c95d3.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/736-16a094056eeaaa99.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/757-450125f8c8acde53.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/80-e73cc552c38c71d8.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(app)/ai-summary/page-bde7a20ab4013be0.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(app)/chores/page-20ca713c855a0d7a.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(app)/dashboard/page-d782b728f0f1719e.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(app)/events/page-e4eb7da04f4fbc54.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(app)/groceries/page-ed0c0b2f82c9827e.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(app)/layout-6403b24172a71b6b.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(app)/meals/page-6a08de3661765b65.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(app)/planner/page-571378a9efae03da.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(app)/reminders/page-d61fe1b1ce4d597b.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(app)/settings/page-e73c6dbd8be2683c.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(auth)/layout-2e9e570a7261d616.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(auth)/login/page-aaca514946680d03.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/(auth)/signup/page-3bf87c9da3cd8301.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/_not-found/page-9319f73562718bf1.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/layout-8a74d96793d18425.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/onboarding/page-441bf12027edb170.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/app/page-52564cf09e690e01.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/fd9d1056-764cda20c6e1258e.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/framework-f66176bb897dc684.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/main-app-a19a47aad6901553.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/main-f717f78d63fc625d.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/pages/_app-72b849fbd24ac258.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/pages/_error-7ba65e1336b92748.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/chunks/polyfills-42372ed130431b0a.js",revision:"846118c33b2c0e922d7b3a7676f81f6f"},{url:"/_next/static/chunks/webpack-4b819981d9643f10.js",revision:"8bYnO4is9ky16ngqwDC0M"},{url:"/_next/static/css/deac26935f40e8a5.css",revision:"deac26935f40e8a5"},{url:"/_next/static/media/19cfc7226ec3afaa-s.woff2",revision:"9dda5cfc9a46f256d0e131bb535e46f8"},{url:"/_next/static/media/21350d82a1f187e9-s.woff2",revision:"4e2553027f1d60eff32898367dd4d541"},{url:"/_next/static/media/8e9860b6e62d6359-s.woff2",revision:"01ba6c2a184b8cba08b0d57167664d75"},{url:"/_next/static/media/ba9851c3c22cd980-s.woff2",revision:"9e494903d6b0ffec1a1e14d34427d44d"},{url:"/_next/static/media/c5fe6dc8356a8c31-s.woff2",revision:"027a89e9ab733a145db70f09b8a18b42"},{url:"/_next/static/media/df0a9ae256c0569c-s.woff2",revision:"d54db44de5ccb18886ece2fda72bdfe0"},{url:"/_next/static/media/e4af272ccee01ff0-s.p.woff2",revision:"65850a373e258f1c897a2b3d75eb74de"},{url:"/icons/README.md",revision:"6377052b1fa05cf38d5a927461d3afb8"},{url:"/icons/icon-192.svg",revision:"9cb636f90fa76a971f340c3f9ff41b80"},{url:"/icons/icon-512.svg",revision:"9cb636f90fa76a971f340c3f9ff41b80"},{url:"/manifest.json",revision:"132ec031bf4045bb74dace4b4e6181d9"}],{ignoreURLParametersMatching:[]}),s.cleanupOutdatedCaches(),s.registerRoute("/",new s.NetworkFirst({cacheName:"start-url",plugins:[{cacheWillUpdate:async({request:s,response:e,event:n,state:i})=>e&&"opaqueredirect"===e.type?new Response(e.body,{status:200,statusText:"OK",headers:e.headers}):e}]}),"GET")});
+// Minimal service worker — push notifications only, no precaching
+// Version: 1.0.0
+
+self.addEventListener("install", (event) => {
+  // Skip waiting so this SW activates immediately
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  // Take control of all pages immediately
+  event.waitUntil(clients.claim());
+});
+
+// Push notification handler
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  let data;
+  try { data = event.data.json(); }
+  catch { data = { title: "Family Assistant AI", body: event.data.text() }; }
+
+  const title = data.title || "Family Assistant AI";
+  const options = {
+    body: data.body || "",
+    icon: data.icon || "/icons/icon-192.png",
+    badge: data.badge || "/icons/icon-192.png",
+    vibrate: [100, 50, 100],
+    data: { url: data.url || "/dashboard" },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification click handler
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/dashboard";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});

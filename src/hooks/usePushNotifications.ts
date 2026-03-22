@@ -10,26 +10,26 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
-// Get an active SW registration without relying on serviceWorker.ready
-// (which hangs if the SW is stuck in installing/waiting state)
-async function getActiveRegistration(): Promise<ServiceWorkerRegistration> {
-  // First try existing registrations
-  const regs = await navigator.serviceWorker.getRegistrations();
-  for (const reg of regs) {
-    if (reg.active) return reg;
-  }
+// Register /sw.js and return the registration.
+// Our SW uses skipWaiting+clients.claim so it activates immediately.
+async function getRegistration(): Promise<ServiceWorkerRegistration> {
+  // Re-use existing registration if already active
+  const existing = await navigator.serviceWorker.getRegistrations();
+  const active = existing.find(r => r.active);
+  if (active) return active;
 
-  // If none active yet, register /sw.js explicitly and wait up to 8s for activation
+  // Register fresh
   const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
 
+  // If already active (fast path)
+  if (reg.active) return reg;
+
+  // Wait for the installing/waiting worker to activate (should be near-instant)
   return new Promise((resolve, reject) => {
-    // Already active
-    if (reg.active) { resolve(reg); return; }
-
     const worker = reg.installing ?? reg.waiting;
-    if (!worker) { reject(new Error("No service worker found")); return; }
+    if (!worker) { reject(new Error("No worker found after registration")); return; }
 
-    const timeout = setTimeout(() => reject(new Error("Service worker took too long to activate")), 8000);
+    const timeout = setTimeout(() => reject(new Error("Service worker activation timed out")), 5000);
 
     worker.addEventListener("statechange", function handler() {
       if (worker.state === "activated") {
@@ -39,7 +39,7 @@ async function getActiveRegistration(): Promise<ServiceWorkerRegistration> {
       } else if (worker.state === "redundant") {
         clearTimeout(timeout);
         worker.removeEventListener("statechange", handler);
-        reject(new Error("Service worker became redundant"));
+        reject(new Error("Service worker failed to install — check /sw.js is accessible"));
       }
     });
   });
@@ -51,18 +51,13 @@ export function usePushNotifications() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-      setState("unsupported");
-      return;
+      setState("unsupported"); return;
     }
-
     if (Notification.permission === "denied") {
-      setState("denied");
-      return;
+      setState("denied"); return;
     }
 
-    // Check for existing push subscription without waiting for SW.ready
     navigator.serviceWorker.getRegistrations()
       .then(regs => {
         const active = regs.find(r => r.active);
@@ -80,31 +75,25 @@ export function usePushNotifications() {
     try {
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) {
-        setError("Push notifications not configured (missing VAPID key)");
+        setError("Push not configured — VAPID key missing");
         setState("prompt");
         return false;
       }
 
-      // Get active registration (registers SW if needed, waits for activation)
-      const reg = await getActiveRegistration();
+      const reg = await getRegistration();
 
-      // Subscribe to push
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
       });
 
-      // Save to server
       const res = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sub.toJSON()),
       });
 
-      if (res.ok) {
-        setState("subscribed");
-        return true;
-      }
+      if (res.ok) { setState("subscribed"); return true; }
 
       const body = await res.json().catch(() => ({}));
       setError(body?.error ?? `Server error ${res.status}`);
@@ -114,7 +103,7 @@ export function usePushNotifications() {
       const msg: string = err?.message ?? String(err);
       if (Notification.permission === "denied" || msg.toLowerCase().includes("denied")) {
         setState("denied");
-        setError("Permission denied — allow notifications in Settings > Safari > [this site]");
+        setError("Permission denied — go to Settings > Safari > this site and allow notifications");
       } else {
         setState("prompt");
         setError(msg);
