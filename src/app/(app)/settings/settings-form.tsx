@@ -47,17 +47,42 @@ export function SettingsForm({ household, settings, members, aiLogs, userId, isO
 
   async function saveNotifPrefs() {
     setSavingNotif(true);
-    const { error } = await supabase.from("user_notification_prefs").upsert({
-      user_id: userId,
+    const payload = {
       morning_enabled: morningEnabled,
       morning_time: morningTime,
       evening_enabled: eveningEnabled,
       evening_time: eveningTime,
       ai_summaries: aiSummaries,
-    }, { onConflict: "user_id" });
+    };
+
+    // Check if a row already exists
+    const { data: existing } = await supabase
+      .from("user_notification_prefs")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    let error;
+    if (existing?.id) {
+      // Update existing row by id
+      ({ error } = await supabase
+        .from("user_notification_prefs")
+        .update(payload)
+        .eq("id", existing.id));
+    } else {
+      // Insert new row
+      ({ error } = await supabase
+        .from("user_notification_prefs")
+        .insert({ user_id: userId, ...payload }));
+    }
+
     setSavingNotif(false);
-    if (error) toast({ title: "Error saving notifications", variant: "error" });
-    else toast({ title: "Notification prefs saved", variant: "success" });
+    if (error) {
+      console.error("saveNotifPrefs error:", error);
+      toast({ title: `Error: ${error.message}`, variant: "error" });
+    } else {
+      toast({ title: "Notification prefs saved", variant: "success" });
+    }
   }
 
   async function handlePushToggle() {
