@@ -1,0 +1,42 @@
+{
+  "task": "Test the notification system. When person a in the house hold adds something assigned to person b then person b should get a notification. Also when person b completes, person a should get completed alert. Similarly test other possible alerts.",
+  "timestamp": 1776458995056,
+  "steps": [
+    {
+      "name": "planner",
+      "timestamp": 1776458995057,
+      "data": {
+        "plan": "Create comprehensive notification system tests covering the key scenarios: (1) Person A assigns a chore/task to Person B → Person B receives an assignment notification, (2) Person B completes a task assigned by Person A → Person A receives a completion notification, (3) Additional scenarios like reminder notifications, grocery item assignments, and event notifications. New test files will be added under src/__tests__/notifications/ covering assignment and completion flows using mocked Supabase and web-push. Mock handlers for household members and notification dispatch will be extended as needed. No existing source files need modification — this is purely additive test coverage.",
+        "filesToModify": [
+          "src/__tests__/notifications/notification-assignment.test.ts",
+          "src/__tests__/notifications/notification-completion.test.ts",
+          "src/__tests__/notifications/push-send.test.ts",
+          "src/__tests__/notifications/push-subscribe.test.ts",
+          "src/__tests__/notifications/notification-bell.test.ts",
+          "src/__tests__/mocks/handlers.ts",
+          "src/__tests__/mocks/web-push.ts"
+        ],
+        "acceptanceCriteria": [
+          "When Person A creates a chore/task assigned to Person B, a push notification is sent to Person B's subscription endpoint",
+          "When Person B marks a task (assigned by Person A) as complete, Person A receives a completion push notification",
+          "When a reminder is due for Person B, Person B receives a reminder push notification",
+          "When Person A adds a grocery item assigned to Person B, Person B receives an assignment notification",
+          "Notifications are NOT sent to the person who performed the action (no self-notification)",
+          "If Person B has no push subscription, the system handles it gracefully without throwing",
+          "The notification payload contains the correct title, body, and metadata (task name, assignee, household context)",
+          "The push-subscribe endpoint correctly stores a new subscription linked to a user and household",
+          "The push-send endpoint correctly fans out notifications to all relevant household member subscriptions",
+          "The notification bell endpoint returns unread notification count and list for the authenticated user",
+          "All tests use mocked Supabase and web-push to avoid real network calls",
+          "Tests cover both success and failure/edge-case paths (e.g., expired push subscription, missing user)"
+        ],
+        "estimatedRisk": "low"
+      }
+    },
+    {
+      "name": "developer",
+      "timestamp": 1776459007569,
+      "data": {}
+    }
+  ]
+}

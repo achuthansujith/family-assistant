@@ -1,0 +1,11 @@
+{
+  "task": "add a comment to the top of src/app/api/health/route.ts describing what this route does",
+  "timestamp": 1776456796631,
+  "steps": [
+    {
+      "name": "planner",
+      "timestamp": 1776456796632,
+      "data": {}
+    }
+  ]
+}

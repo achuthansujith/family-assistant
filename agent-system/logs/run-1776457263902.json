@@ -1,0 +1,87 @@
+{
+  "task": "Test the notification system. When person a in the house hold adds something assigned to person b then person b should get a notification. Also when person b completes, person a should get completed alert. Similarly test other possible alerts.",
+  "timestamp": 1776457263902,
+  "steps": [
+    {
+      "name": "planner",
+      "timestamp": 1776457263904,
+      "data": {
+        "plan": "Add comprehensive notification tests for the household notification system. This involves: (1) Creating test utilities and mocks for Supabase, push notification APIs, and user contexts. (2) Writing integration tests that simulate Person A adding a chore/reminder/grocery assigned to Person B, verifying Person B receives a push notification. (3) Testing the completion flow where Person B marks an item complete and Person A receives a completion alert. (4) Testing other notification triggers: event reminders, meal plan assignments, grocery list updates, and reminder due alerts. The tests will cover the API routes in src/app/api/notifications/ and src/app/api/push/, the usePushNotifications hook, and the notification-bell component. Mock Supabase realtime subscriptions and web push payloads to verify correct recipients, message content, and delivery logic without requiring live infrastructure.",
+        "filesToModify": [
+          "src/__tests__/notifications/notification-assignment.test.ts",
+          "src/__tests__/notifications/notification-completion.test.ts",
+          "src/__tests__/notifications/notification-bell.test.ts",
+          "src/__tests__/notifications/push-subscribe.test.ts",
+          "src/__tests__/notifications/push-send.test.ts",
+          "src/__tests__/hooks/usePushNotifications.test.ts",
+          "src/__tests__/mocks/supabase.ts",
+          "src/__tests__/mocks/web-push.ts",
+          "src/__tests__/mocks/handlers.ts",
+          "src/app/api/notifications/bell/route.ts",
+          "src/app/api/notifications/summary/route.ts",
+          "src/app/api/push/send/route.ts",
+          "src/app/api/push/subscribe/route.ts",
+          "src/hooks/usePushNotifications.ts",
+          "src/components/features/notification-bell.tsx",
+          "src/types/index.ts"
+        ],
+        "acceptanceCriteria": [
+          "When Person A adds a chore assigned to Person B, a push notification is sent to all of Person B's subscribed devices with the correct title and body mentioning the chore name and assigner",
+          "When Person B marks a chore as complete, Person A receives a push notification confirming completion with the chore name and completer's name",
+          "When Person A adds a reminder assigned to Person B, Person B receives a push notification for the new reminder assignment",
+          "When a reminder becomes due, the assigned person receives a due-alert push notification",
+          "When Person A adds a grocery item and assigns it to Person B, Person B is notified of the new grocery assignment",
+          "When Person A creates a household event, all household members receive an event notification",
+          "When a meal plan is updated and assigned to Person B, Person B receives a meal assignment notification",
+          "Notifications are only sent to members within the same household and never to users outside the household",
+          "The notification bell API returns unread notification count and list correctly for the authenticated user",
+          "The notification bell component renders the correct unread badge count and clears on open",
+          "The push subscribe API correctly saves and updates push subscriptions per user in Supabase",
+          "The push send API returns 401 for unauthenticated requests and 400 for malformed payloads",
+          "usePushNotifications hook requests permission, subscribes to push, and calls the subscribe API on mount when permission is granted",
+          "usePushNotifications hook does not throw and gracefully handles browsers without push support",
+          "Notification payloads include a deep-link URL so tapping the notification navigates to the relevant page",
+          "All tests pass in CI without requiring live Supabase or web-push credentials by using mocks and MSW handlers"
+        ],
+        "estimatedRisk": "medium"
+      }
+    },
+    {
+      "name": "developer",
+      "timestamp": 1776457278787,
+      "data": {
+        "filesChanged": [
+          "src/__tests__/notifications/notification-assignment.test.ts",
+          "src/__tests__/notifications/notification-completion.test.ts",
+          "src/__tests__/notifications/notification-bell.test.ts",
+          "src/__tests__/notifications/push-subscribe.test.ts",
+          "src/__tests__/notifications/push-send.test.ts",
+          "src/__tests__/hooks/usePushNotifications.test.ts",
+          "src/__tests__/mocks/supabase.ts",
+          "src/__tests__/mocks/web-push.ts",
+          "src/__tests__/mocks/handlers.ts",
+          "src/app/api/notifications/bell/route.ts",
+          "src/app/api/notifications/summary/route.ts",
+          "src/app/api/push/send/route.ts",
+          "src/app/api/push/subscribe/route.ts",
+          "src/hooks/usePushNotifications.ts",
+          "src/components/features/notification-bell.tsx",
+          "src/types/index.ts"
+        ]
+      }
+    },
+    {
+      "name": "qa (attempt 0)",
+      "timestamp": 1776457519156,
+      "data": {
+        "passed": false,
+        "errorCount": 11
+      }
+    },
+    {
+      "name": "fix (attempt 1)",
+      "timestamp": 1776457524251,
+      "data": {}
+    }
+  ]
+}

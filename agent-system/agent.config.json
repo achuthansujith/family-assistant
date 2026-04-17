@@ -1,0 +1,23 @@
+{
+  "enable_auto_deploy": false,
+  "require_approval_before_deploy": true,
+  "max_fix_attempts": 3,
+  "branch_prefix": "agent/",
+  "log_level": "info",
+  "ai_usage_limits": {
+    "max_tokens_per_run": 8000,
+    "max_runs_per_day": 10
+  },
+  "protected_files": [
+    ".env.local",
+    ".env",
+    "supabase/migrations",
+    "next.config.js"
+  ],
+  "stack": {
+    "build_command": "npm run build",
+    "test_command": "npm run test",
+    "framework": "nextjs",
+    "deploy_platform": "vercel"
+  }
+}

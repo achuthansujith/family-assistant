@@ -1,0 +1,70 @@
+{
+  "task": "Test the notification system. When person a in the house hold adds something assigned to person b then person b should get a notification. Also when person b completes, person a should get completed alert. Similarly test other possible alerts.",
+  "timestamp": 1776459204570,
+  "steps": [
+    {
+      "name": "planner",
+      "timestamp": 1776459204571,
+      "data": {
+        "plan": "Create comprehensive notification system tests covering: (1) assignment notifications - when person A assigns a chore/task/reminder to person B, person B receives a push notification; (2) completion notifications - when person B completes an assigned item, person A (the assignor) receives a completion alert; (3) grocery/meal/event assignment notifications; (4) reminder due notifications. New test files will be added under src/__tests__/notifications/ to cover these flows using existing mock infrastructure (supabase mock, web-push mock, MSW handlers). The existing notification-assignment.test.ts and notification-completion.test.ts will be supplemented with additional scenario tests in new files covering edge cases and other alert types.",
+        "filesToModify": [
+          "src/__tests__/notifications/notification-assignment.test.ts",
+          "src/__tests__/notifications/notification-completion.test.ts",
+          "src/__tests__/notifications/notification-bell.test.ts",
+          "src/__tests__/notifications/push-send.test.ts",
+          "src/__tests__/notifications/push-subscribe.test.ts",
+          "src/__tests__/notifications/notification-reminder.test.ts",
+          "src/__tests__/notifications/notification-grocery.test.ts",
+          "src/__tests__/mocks/handlers.ts"
+        ],
+        "acceptanceCriteria": [
+          "When person A assigns a chore to person B, a push notification is sent to all of person B's subscribed devices",
+          "When person B completes a chore assigned by person A, person A receives a completion push notification",
+          "When person A assigns a reminder to person B, person B receives a push notification with the reminder details",
+          "When a reminder becomes due, the assigned person receives a due-alert push notification",
+          "When person A adds a grocery item and tags person B, person B receives a notification",
+          "Push notifications are NOT sent to the person who performed the action (no self-notification)",
+          "If person B has no push subscription, the system handles gracefully without errors",
+          "Notification bell endpoint returns unread notification count correctly for a given user",
+          "Notification bell count decrements or clears after notifications are marked as read",
+          "Multiple household members each receive their respective notifications independently",
+          "Push subscribe endpoint stores subscription and returns success for a valid user",
+          "Push send endpoint rejects requests with missing or invalid payload",
+          "All notification API routes return appropriate HTTP status codes (200, 400, 401, 500)"
+        ],
+        "estimatedRisk": "low"
+      }
+    },
+    {
+      "name": "developer",
+      "timestamp": 1776459215676,
+      "data": {
+        "filesChanged": [
+          "src/__tests__/notifications/notification-assignment.test.ts",
+          "src/__tests__/notifications/notification-completion.test.ts",
+          "src/__tests__/notifications/notification-bell.test.ts",
+          "src/__tests__/notifications/push-send.test.ts",
+          "src/__tests__/notifications/push-subscribe.test.ts",
+          "src/__tests__/notifications/notification-reminder.test.ts",
+          "src/__tests__/notifications/notification-grocery.test.ts",
+          "src/__tests__/mocks/handlers.ts"
+        ]
+      }
+    },
+    {
+      "name": "qa (attempt 0)",
+      "timestamp": 1776459639872,
+      "data": {
+        "passed": true,
+        "errorCount": 0
+      }
+    },
+    {
+      "name": "deploy",
+      "timestamp": 1776459657929,
+      "data": {
+        "skipped": true
+      }
+    }
+  ]
+}

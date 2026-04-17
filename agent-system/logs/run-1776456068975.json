@@ -1,0 +1,25 @@
+[
+  {
+    "timestamp": "2026-04-17T20:01:08.975Z",
+    "level": "info",
+    "msg": "Starting pipeline for task: test: add export const dynamic check to verify all routes have it"
+  },
+  {
+    "timestamp": "2026-04-17T20:01:08.978Z",
+    "level": "info",
+    "msg": "Config loaded",
+    "data": {
+      "maxFixAttempts": 3
+    }
+  },
+  {
+    "timestamp": "2026-04-17T20:01:08.978Z",
+    "level": "info",
+    "msg": "Running planner..."
+  },
+  {
+    "timestamp": "2026-04-17T20:01:09.053Z",
+    "level": "error",
+    "msg": "Planner failed: Could not resolve authentication method. Expected either apiKey or authToken to be set. Or for one of the \"X-Api-Key\" or \"Authorization\" headers to be explicitly omitted"
+  }
+]
