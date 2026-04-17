@@ -1,4 +1,6 @@
-﻿import { createClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
+
+import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/layout/app-header";
 import { RemindersList } from "./reminders-list";
 
@@ -27,3 +29,4 @@ export default async function RemindersPage() {
     </div>
   );
 }
+

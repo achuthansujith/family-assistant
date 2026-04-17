@@ -1,4 +1,6 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
+
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { callAi, isAiEnabled } from "@/lib/adapters/ai";
 import { buildDailySummaryPrompt } from "@/lib/prompts";
@@ -103,3 +105,4 @@ function buildDeterministicSummary(data: {
   if (parts.length === 1) parts.push("Nothing urgent today.");
   return parts.join(" ");
 }
+

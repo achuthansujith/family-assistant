@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { deterministicParse } from "@/lib/parsers/quick-add";
@@ -67,3 +69,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ result, source: "deterministic_fallback" });
   }
 }
+

@@ -1,4 +1,6 @@
-﻿import { redirect } from "next/navigation";
+export const dynamic = "force-dynamic";
+
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function RootPage() {
@@ -7,3 +9,4 @@ export default async function RootPage() {
   if (!user) redirect("/login");
   redirect("/dashboard");
 }
+

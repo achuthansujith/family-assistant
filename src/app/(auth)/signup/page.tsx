@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { SignupForm } from "./signup-form";
 
 export default function SignupPage() {
@@ -13,3 +15,4 @@ export default function SignupPage() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
@@ -72,3 +72,5 @@ export default function AiSummaryPage() {
     </div>
   );
 }
+
+

@@ -1,4 +1,6 @@
-﻿import { createClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
+
+import { createClient } from "@/lib/supabase/server";
 import { AppHeader } from "@/components/layout/app-header";
 import { EventsList } from "./events-list";
 
@@ -29,3 +31,4 @@ export default async function EventsPage() {
     </div>
   );
 }
+

@@ -1,4 +1,6 @@
-﻿import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
+
+import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 
 /**
@@ -20,3 +22,4 @@ export async function GET() {
     return NextResponse.json({ status: "error" }, { status: 500 });
   }
 }
+
