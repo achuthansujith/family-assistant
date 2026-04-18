@@ -188,10 +188,10 @@ export function MealPlanner({ initialPlans, meals, householdId, userId, weekStar
                   </button>
                   <input value={ing.name} onChange={e => updateIngredient(idx, "name", e.target.value)}
                     placeholder="Item name"
-                    className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 min-w-0" />
+                    className="flex-1 text-sm border border-brand-100 bg-brand-50 rounded-xl px-3 py-2 min-w-0 focus:outline-none focus:ring-2 focus:ring-brand-400" />
                   <input value={ing.quantity} onChange={e => updateIngredient(idx, "quantity", e.target.value)}
                     placeholder="Qty"
-                    className="w-16 text-sm border border-gray-200 rounded-xl px-2 py-2" />
+                    className="w-16 text-sm border border-brand-100 bg-brand-50 rounded-xl px-2 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400" />
                 </div>
               ))}
               <button onClick={addIngredientRow}
@@ -204,7 +204,7 @@ export function MealPlanner({ initialPlans, meals, householdId, userId, weekStar
               <label className="text-sm text-gray-600 font-medium">Anything extra to add?</label>
               <input value={groceryFlow.extra} onChange={e => setGroceryFlow(prev => prev ? { ...prev, extra: e.target.value } : null)}
                 placeholder="e.g. olive oil"
-                className="mt-1 w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5" />
+                className="mt-1 w-full text-sm border border-brand-100 bg-brand-50 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-400" />
             </div>
 
             <div className="flex gap-2 pt-1">
@@ -232,18 +232,18 @@ export function MealPlanner({ initialPlans, meals, householdId, userId, weekStar
       {/* Weekly grid */}
       <div className="space-y-3">
         {weekDates.map((date, di) => (
-          <div key={date} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
-              <span className="text-sm font-semibold text-gray-700">{DAYS[di]} {format(parseISO(date), "d MMM")}</span>
+          <div key={date} className="bg-white rounded-2xl border border-brand-100 overflow-hidden">
+            <div className="px-4 py-2 bg-brand-50 border-b border-brand-100">
+              <span className="text-sm font-semibold text-brand-700">{DAYS[di]} {format(parseISO(date), "d MMM")}</span>
             </div>
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-brand-50">
               {SLOTS.map(slot => {
                 const slotPlans = getPlansForSlot(date, slot);
                 const isAdding = adding?.date === date && adding?.slot === slot;
                 return (
                   <div key={slot} className="px-4 py-2">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-400 capitalize">{slot}</span>
+                      <span className="text-xs text-brand-400 capitalize">{slot}</span>
                       <button onClick={() => { setAdding({ date, slot }); setMealName(""); setSelectedMealId(""); }}
                         className="text-xs text-brand-500 hover:text-brand-600">+ add</button>
                     </div>
@@ -263,7 +263,7 @@ export function MealPlanner({ initialPlans, meals, householdId, userId, weekStar
                       <div className="mt-2 space-y-2">
                         {meals.length > 0 && (
                           <select value={selectedMealId} onChange={e => setSelectedMealId(e.target.value)}
-                            className="w-full text-sm rounded-xl border border-gray-200 px-3 py-2">
+                            className="w-full text-sm rounded-xl border border-brand-100 bg-brand-50 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400">
                             <option value="">-- pick saved meal --</option>
                             {meals.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                           </select>

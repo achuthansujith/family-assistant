@@ -9,7 +9,7 @@ export function Card({ children, className, onClick }: {
     <div
       onClick={onClick}
       className={cn(
-        "bg-white rounded-2xl border border-gray-100 shadow-sm p-4",
+        "bg-white rounded-2xl border border-brand-100 shadow-sm p-4",
         onClick && "cursor-pointer active:scale-[0.98] transition-transform",
         className
       )}

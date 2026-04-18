@@ -10,15 +10,23 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50: "#f0f9ff",
-          100: "#e0f2fe",
-          500: "#0ea5e9",
-          600: "#0284c7",
-          700: "#0369a1",
+          50:  "#fdf8f3",
+          100: "#FAEEDA",
+          200: "#FAC775",
+          400: "#EF9F27",
+          500: "#BA7517",
+          600: "#854F0B",
+          700: "#633806",
+          800: "#412402",
         },
       },
+      borderRadius: {
+        xl:  "16px",
+        "2xl": "20px",
+      },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        sans:  ["var(--font-inter)", "Georgia", "system-ui", "sans-serif"],
+        serif: ["Georgia", "serif"],
       },
     },
   },
