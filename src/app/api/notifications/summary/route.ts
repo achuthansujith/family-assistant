@@ -94,9 +94,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Log delivery
-  await supabase.from("notification_delivery_log").insert({
-    household_id: hid, type, summary: summaryText, sent_by: user.id,
-  });
+  const { error: logError } = await supabase
+    .from("notification_delivery_log")
+    .insert({ household_id: hid, type, summary: summaryText, sent_by: user.id });
+  if (logError) console.error("notification_delivery_log insert failed:", logError);
 
   // Send push notification to this user's devices
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";

@@ -33,8 +33,13 @@ create policy "Household members can view delivery log"
     )
   );
 
--- Authenticated users can insert (service role used in practice)
-create policy "Authenticated can insert delivery log"
+-- Household members can insert logs for their own household
+create policy "Household members can insert delivery log"
   on notification_delivery_log
   for insert
-  with check (auth.uid() is not null);
+  to authenticated
+  with check (
+    household_id in (
+      select household_id from household_members where user_id = auth.uid()
+    )
+  );
