@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
 
   // Log delivery
   await supabase.from("notification_delivery_log").insert({
-    user_id: user.id, type, ai_powered: aiPowered, summary_text: summaryText,
+    household_id: hid, type, summary: summaryText, sent_by: user.id,
   });
 
   // Send push notification to this user's devices
