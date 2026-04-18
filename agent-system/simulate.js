@@ -498,7 +498,7 @@ async function phase4() {
   check("Summary text returned", typeof summaryRes.data?.summary === "string");
 
   // Verify notification_delivery_log entry (table may not exist — soft check)
-  const logs = await sbAdmin("/rest/v1/notification_delivery_log?user_id=eq." + userA.id + "&order=created_at.desc&limit=5", {
+  const logs = await sbAdmin("/rest/v1/notification_delivery_log?sent_by=eq." + userA.id + "&order=sent_at.desc&limit=5", {
     headers: { Accept: "application/json" },
   });
   if (logs.status === 404 || logs.data?.code === "PGRST205") {
@@ -635,8 +635,7 @@ async function cleanup() {
     for (const id of created.meals) await dbDelete("meal_plans", { id });
 
     // Notification delivery log
-    if (userA) await dbDelete("notification_delivery_log", { user_id: userA.id });
-    if (userB) await dbDelete("notification_delivery_log", { user_id: userB.id });
+    if (householdId) await dbDelete("notification_delivery_log", { household_id: householdId });
 
     // Household members → settings → household
     if (householdId) {
